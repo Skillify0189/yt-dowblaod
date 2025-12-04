@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}YouTube Downloader - Download Videos & Music{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 4rem 0;
+        margin-bottom: 3rem;
+        border-radius: 0 0 20px 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .hero-section h1 {
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        font-size: 2.5rem;
+    }
+
+    .hero-section p {
+        font-size: 1.1rem;
+        opacity: 0.95;
+    }
+
+    @media (max-width: 768px) {
+        .hero-section {
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .hero-section h1 {
+            font-size: 2rem;
+        }
+    }
+
+    /* Additional styles for select element */
+    select {
+        background-color: white;
+        color: #333;
+        padding: 8px 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    select option {
+        background-color: white;
+        color: #333;
+        padding: 8px;
+    }
+    
+    select option:hover {
+        background-color: #007bff;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section text-center">
+    <h1>🎥 YouTube Video & Audio Downloader</h1>
+    <p>Download your favorite videos and music in multiple quality formats</p>
+</div>
+
+<!-- Main Form Card -->
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-lg border-0">
+            <div class="card-body p-5">
+                <!-- Form -->
+                <form id="downloadForm" method="POST" action="/download">
+                    <!-- URL Input -->
+                    <div class="mb-4">
+                        <label for="urlInput" class="form-label fw-bold">YouTube URL</label>
+                        <input 
+                            type="text" 
+                            class="form-control form-control-lg" 
+                            id="urlInput" 
+                            name="url" 
+                            placeholder="https://www.youtube.com/watch?v=..." 
+                            required
+                            autocomplete="off"
+                        >
+                        <small class="text-muted d-block mt-2">
+                            Paste the full URL of any YouTube video
+                        </small>
+                    </div>
+
+                    <!-- Quality Selection -->
+                    <div class="mb-4">
+                        <label for="qualitySelect" class="form-label fw-bold">Download Quality</label>
+                        <select class="form-select form-select-lg" id="qualitySelect" name="quality" required>
+                            <option value="">-- Select quality --</option>
+                            {% for key, quality_info in qualities.items() %}
+                                <option value="{{ key }}">{{ quality_info.label }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted d-block mt-2">
+                            Higher quality = larger file size
+                        </small>
+                    </div>
+
+                    <!-- Download Button -->
+                    <button 
+                        type="submit" 
+                        class="btn btn-primary btn-lg w-100 fw-bold" 
+                        id="downloadBtn"
+                    >
+                        <span id="btnText">⬇️ Download</span>
+                        <span id="btnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
+                    </button>
+                </form>
+
+                <!-- Status/Messages Area -->
+                <div id="statusArea" class="mt-4"></div>
+            </div>
+        </div>
+
+        <!-- Info Box -->
+        <div class="alert alert-info mt-4 rounded-3" role="alert">
+            <strong>💡 Tip:</strong> Downloads are saved to your device automatically after clicking "Save" in the browser dialog.
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('downloadForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const url = document.getElementById('urlInput').value.trim();
+    const quality = document.getElementById('qualitySelect').value;
+    const statusArea = document.getElementById('statusArea');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const btnText = document.getElementById('btnText');
+    const btnSpinner = document.getElementById('btnSpinner');
+
+    // Clear previous messages
+    statusArea.innerHTML = '';
+
+    // Validate inputs
+    if (!url) {
+        showMessage(statusArea, 'error', '❌ Please enter a YouTube URL.');
+        return;
+    }
+
+    if (!quality) {
+        showMessage(statusArea, 'error', '❌ Please select a quality.');
+        return;
+    }
+
+    // Disable button and show loading state
+    downloadBtn.disabled = true;
+    btnText.textContent = 'Downloading...';
+    btnSpinner.classList.remove('d-none');
+
+    try {
+        // Submit form via fetch
+        const formData = new FormData();
+        formData.append('url', url);
+        formData.append('quality', quality);
+
+        const response = await fetch('/download', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.filename) {
+            // Success: show download button
+            showMessage(statusArea, 'success', data.message);
+            
+            const downloadLink = document.createElement('a');
+            downloadLink.href = `/download-file/${encodeURIComponent(data.filename)}`;
+            downloadLink.className = 'btn btn-success btn-lg w-100 fw-bold mt-3';
+            downloadLink.innerHTML = '💾 Save to Your Device';
+            downloadLink.click();
+            
+            // Also show button for manual download
+            statusArea.appendChild(downloadLink);
+
+            // Reset form
+            document.getElementById('downloadForm').reset();
+        } else {
+            // Error
+            showMessage(statusArea, 'error', data.message || '❌ Download failed. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showMessage(statusArea, 'error', '❌ Network error. Please check your connection and try again.');
+    } finally {
+        // Re-enable button and hide loading state
+        downloadBtn.disabled = false;
+        btnText.textContent = '⬇️ Download';
+        btnSpinner.classList.add('d-none');
+    }
+});
+
+function showMessage(container, type, message) {
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const alertHTML = `
+        <div class="alert ${alertClass} alert-dismissible fade show rounded-3" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    container.innerHTML = alertHTML;
+}
+</script>
+{% endblock %}

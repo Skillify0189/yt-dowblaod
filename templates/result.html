@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Download Complete - YouTube Downloader{% endblock %}
+
+{% block extra_css %}
+<style>
+    .result-container {
+        margin-top: 3rem;
+    }
+
+    .success-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+
+    .error-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        color: #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="result-container row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-lg border-0 text-center">
+            <div class="card-body p-5">
+                
+                <!-- Success Result -->
+                {% if success %}
+                    <div class="success-icon">✅</div>
+                    <h2 class="card-title mb-3 text-success">Download Complete!</h2>
+                    <p class="card-text mb-4">
+                        Your file is ready to download.
+                    </p>
+                    
+                    <div class="alert alert-info mb-4" role="alert">
+                        <strong>File:</strong> {{ filename }}
+                    </div>
+
+                    <a href="{{ download_url }}" class="btn btn-success btn-lg w-100 fw-bold mb-3">
+                        💾 Save to Your Device
+                    </a>
+
+                    <a href="/" class="btn btn-outline-primary btn-lg w-100 fw-bold">
+                        ⬅️ Download Another File
+                    </a>
+
+                <!-- Error Result -->
+                {% else %}
+                    <div class="error-icon">❌</div>
+                    <h2 class="card-title mb-3 text-danger">Download Failed</h2>
+                    <p class="card-text mb-4">
+                        {{ error_message }}
+                    </p>
+
+                    <a href="/" class="btn btn-primary btn-lg w-100 fw-bold">
+                        ⬅️ Try Again
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
